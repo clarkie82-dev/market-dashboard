@@ -167,6 +167,14 @@ for (const id of treasuryIds) {
 }
 await writeJson('treasury.json', { series: treasurySeries, fetchedAt });
 
+function marketChartToHourlyPoints(prices) {
+  return (prices ?? []).map(([ts, value]) => ({
+    time: ts,
+    date: new Date(ts).toISOString().slice(0, 10),
+    value,
+  }));
+}
+
 async function fetchBinanceHourly(symbol, limit = 168) {
   const url = `https://api.binance.com/api/v3/klines?symbol=${encodeURIComponent(symbol)}&interval=1h&limit=${limit}`;
   const res = await fetch(url);
@@ -182,8 +190,70 @@ async function fetchBinanceHourly(symbol, limit = 168) {
   });
 }
 
-await writeJson('bitcoin-7d.json', { points: await fetchBinanceHourly('BTCUSDT'), fetchedAt });
-await writeJson('ethereum-7d.json', { points: await fetchBinanceHourly('ETHUSDT'), fetchedAt });
+async function fetchCoinGeckoHourly7d(coinId) {
+  const attempts = [
+    `https://api.coingecko.com/api/v3/coins/${coinId}/market_chart?vs_currency=usd&days=7&interval=hourly`,
+    `https://api.coingecko.com/api/v3/coins/${coinId}/market_chart?vs_currency=usd&days=7`,
+  ];
+  for (const url of attempts) {
+    const res = await fetch(url);
+    if (!res.ok) continue;
+    const json = await res.json();
+    const points = marketChartToHourlyPoints(json.prices);
+    if (points.length >= 48) return points;
+  }
+  throw new Error(`CoinGecko hourly 7d ${coinId} failed`);
+}
+
+async function fetchYahooHourly7d(symbol) {
+  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1h&range=7d`;
+  const res = await fetch(url, {
+    headers: { 'User-Agent': 'Mozilla/5.0 (compatible; market-dashboard/1.0)' },
+  });
+  if (!res.ok) throw new Error(`Yahoo hourly ${symbol}: ${res.status}`);
+  const json = await res.json();
+  const result = json.chart?.result?.[0];
+  const timestamps = result?.timestamp ?? [];
+  const closes = result?.indicators?.quote?.[0]?.close ?? [];
+  const points = [];
+  for (let i = 0; i < timestamps.length; i++) {
+    const c = closes[i];
+    if (c == null || !Number.isFinite(c)) continue;
+    const time = timestamps[i] * 1000;
+    points.push({
+      time,
+      date: new Date(time).toISOString().slice(0, 10),
+      value: c,
+    });
+  }
+  if (points.length < 24) throw new Error(`Yahoo hourly ${symbol}: too few rows`);
+  return points;
+}
+
+async function fetchHourly7d({ coinId, binanceSymbol, yahooSymbol }) {
+  return fetchSeriesWithFallback([
+    () => fetchBinanceHourly(binanceSymbol),
+    () => fetchCoinGeckoHourly7d(coinId),
+    () => fetchYahooHourly7d(yahooSymbol),
+  ]);
+}
+
+await writeJson('bitcoin-7d.json', {
+  points: await fetchHourly7d({
+    coinId: 'bitcoin',
+    binanceSymbol: 'BTCUSDT',
+    yahooSymbol: 'BTC-USD',
+  }),
+  fetchedAt,
+});
+await writeJson('ethereum-7d.json', {
+  points: await fetchHourly7d({
+    coinId: 'ethereum',
+    binanceSymbol: 'ETHUSDT',
+    yahooSymbol: 'ETH-USD',
+  }),
+  fetchedAt,
+});
 
 await writeJson('bitcoin.json', { points: await fetchCrypto('bitcoin', 'btcusd'), fetchedAt });
 await writeJson('ethereum.json', {
