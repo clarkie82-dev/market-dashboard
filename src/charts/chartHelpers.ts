@@ -34,11 +34,16 @@ export function destroyChart(chart: Chart | null): null {
   return null;
 }
 
+export function pointToX(p: DataPoint): number {
+  return p.time ?? new Date(`${p.date}T12:00:00Z`).getTime();
+}
+
 export function lineTimeChart(
   canvas: HTMLCanvasElement,
   points: DataPoint[],
   label: string,
   yLabel?: string,
+  timeUnit: 'day' | 'hour' = 'day',
 ): Chart {
   const cfg: ChartConfiguration<'line'> = {
     type: 'line',
@@ -47,7 +52,7 @@ export function lineTimeChart(
         {
           label,
           data: points.map((p) => ({
-            x: new Date(`${p.date}T12:00:00Z`).getTime(),
+            x: pointToX(p),
             y: p.value,
           })),
           borderColor: COLORS[0],
@@ -62,7 +67,7 @@ export function lineTimeChart(
       responsive: true,
       maintainAspectRatio: true,
       scales: {
-        x: { type: 'time', time: { unit: 'day' } },
+        x: { type: 'time', time: { unit: timeUnit } },
         y: {
           title: yLabel ? { display: true, text: yLabel } : undefined,
         },
@@ -84,7 +89,7 @@ export function lineTimeMultiChart(
       datasets: series.map((s, i) => ({
         label: s.label,
         data: s.points.map((p) => ({
-          x: new Date(`${p.date}T12:00:00Z`).getTime(),
+          x: pointToX(p),
           y: p.value,
         })),
         borderColor: COLORS[i % COLORS.length],

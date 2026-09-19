@@ -1,4 +1,4 @@
-export type DataPoint = { date: string; value: number };
+export type DataPoint = { date: string; value: number; time?: number };
 
 export type SeriesPayload = {
   points: DataPoint[];

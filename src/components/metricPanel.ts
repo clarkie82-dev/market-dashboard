@@ -2,7 +2,7 @@ import type { Chart } from 'chart.js';
 import type { DataPoint, RangeKey, SeriesPayload } from '../data/types';
 import { RANGE_OPTIONS } from '../data/types';
 import { destroyChart, lineTimeChart, metaLine } from '../charts/chartHelpers';
-import { lastNDays } from '../data/ranges';
+import { filterLastHours, lastNDays } from '../data/ranges';
 
 export type MetricPanelOptions = {
   title: string;
@@ -10,6 +10,8 @@ export type MetricPanelOptions = {
   shortLabel?: string;
   longLabel?: string;
   shortDays?: number;
+  shortFilterHours?: number;
+  shortTimeUnit?: 'day' | 'hour';
   onRangeChange: (key: RangeKey) => Promise<SeriesPayload>;
 };
 
@@ -76,11 +78,16 @@ export function createMetricPanel(
 
   function renderShort(points: DataPoint[]) {
     shortChart = destroyChart(shortChart);
+    const filtered =
+      opts.shortFilterHours != null
+        ? filterLastHours(points, opts.shortFilterHours)
+        : lastNDays(points, shortDays);
     shortChart = lineTimeChart(
       shortCanvas,
-      lastNDays(points, shortDays),
+      filtered,
       opts.title,
       opts.yLabel,
+      opts.shortTimeUnit ?? 'day',
     );
   }
 

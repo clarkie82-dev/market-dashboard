@@ -30,6 +30,15 @@ export function filterByRange(points: DataPoint[], key: RangeKey): DataPoint[] {
   return points.filter((p) => p.date >= start);
 }
 
+export function filterLastHours(points: DataPoint[], hours: number): DataPoint[] {
+  if (points.length === 0) return [];
+  const hasTime = points.some((p) => p.time != null);
+  if (!hasTime) return lastNDays(points, Math.ceil(hours / 24));
+  const latest = Math.max(...points.map((p) => p.time ?? 0));
+  const cutoff = latest - hours * 60 * 60 * 1000;
+  return points.filter((p) => (p.time ?? 0) >= cutoff);
+}
+
 export function lastNDays(points: DataPoint[], days: number): DataPoint[] {
   if (points.length === 0) return [];
   const end = points[points.length - 1]!.date;

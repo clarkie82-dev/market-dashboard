@@ -167,6 +167,24 @@ for (const id of treasuryIds) {
 }
 await writeJson('treasury.json', { series: treasurySeries, fetchedAt });
 
+async function fetchBinanceHourly(symbol, limit = 168) {
+  const url = `https://api.binance.com/api/v3/klines?symbol=${encodeURIComponent(symbol)}&interval=1h&limit=${limit}`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Binance ${symbol}: ${res.status}`);
+  const rows = await res.json();
+  return rows.map((row) => {
+    const time = row[0];
+    return {
+      time,
+      date: new Date(time).toISOString().slice(0, 10),
+      value: parseFloat(row[4]),
+    };
+  });
+}
+
+await writeJson('bitcoin-7d.json', { points: await fetchBinanceHourly('BTCUSDT'), fetchedAt });
+await writeJson('ethereum-7d.json', { points: await fetchBinanceHourly('ETHUSDT'), fetchedAt });
+
 await writeJson('bitcoin.json', { points: await fetchCrypto('bitcoin', 'btcusd'), fetchedAt });
 await writeJson('ethereum.json', {
   points: await fetchCrypto('ethereum', 'ethusd'),
