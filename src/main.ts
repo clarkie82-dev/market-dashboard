@@ -47,16 +47,16 @@ async function init() {
     createMetricPanel(app, btc.short.points, btc.long, {
       title: 'Bitcoin — USD',
       yLabel: 'USD',
-      shortLabel: 'Last ~24h',
-      shortDays: 2,
+      shortLabel: 'Last 7 days',
+      shortDays: 7,
       onRangeChange: (k) => reloadCoinGeckoLong('bitcoin', 'bitcoin.json', k),
     });
 
     createMetricPanel(app, eth.short.points, eth.long, {
       title: 'Ethereum — USD',
       yLabel: 'USD',
-      shortLabel: 'Last ~24h',
-      shortDays: 2,
+      shortLabel: 'Last 7 days',
+      shortDays: 7,
       onRangeChange: (k) => reloadCoinGeckoLong('ethereum', 'ethereum.json', k),
     });
 
