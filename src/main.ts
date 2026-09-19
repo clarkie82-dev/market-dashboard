@@ -21,8 +21,8 @@ async function init() {
       loadFearGreed(),
       loadFredWithFallback(FRED_SERIES.sp500, 'sp500.json'),
       loadFredWithFallback(FRED_SERIES.nasdaq, 'nasdaq.json'),
-      loadCoinGecko('bitcoin', 'bitcoin.json', '6m'),
-      loadCoinGecko('ethereum', 'ethereum.json', '6m'),
+      loadCoinGecko('bitcoin', 'bitcoin.json', '6m', '7'),
+      loadCoinGecko('ethereum', 'ethereum.json', '6m', '7'),
       loadFredWithFallback(FRED_SERIES.gold, 'gold.json', undefined, [
         'GOLDAMGBD228NLBM',
       ]),
