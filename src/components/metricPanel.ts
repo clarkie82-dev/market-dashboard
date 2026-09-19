@@ -20,6 +20,7 @@ export function createMetricPanel(
   initialShort: DataPoint[],
   initialLong: SeriesPayload,
   opts: MetricPanelOptions,
+  initialShortMeta?: SeriesPayload,
 ): { setRange: (key: RangeKey) => Promise<void>; getRange: () => RangeKey } {
   const panel = document.createElement('section');
   panel.className = 'metric-panel';
@@ -30,8 +31,17 @@ export function createMetricPanel(
 
   const meta = document.createElement('div');
   meta.className = 'panel-meta';
-  meta.textContent = metaLine(initialLong.source, initialLong.fetchedAt);
   panel.appendChild(meta);
+
+  function updateMeta(long: SeriesPayload, short?: SeriesPayload) {
+    const parts = [metaLine(long.source, long.fetchedAt)];
+    if (short && (short.source !== long.source || short.fetchedAt !== long.fetchedAt)) {
+      parts.push(`Short chart: ${metaLine(short.source, short.fetchedAt)}`);
+    }
+    meta.textContent = parts.join(' · ');
+  }
+
+  updateMeta(initialLong, initialShortMeta);
 
   const chartRow = document.createElement('div');
   chartRow.className = 'chart-row';
@@ -94,7 +104,7 @@ export function createMetricPanel(
   function renderLong(payload: SeriesPayload) {
     longChart = destroyChart(longChart);
     longChart = lineTimeChart(longCanvas, payload.points, opts.title, opts.yLabel);
-    meta.textContent = metaLine(payload.source, payload.fetchedAt);
+    updateMeta(payload, initialShortMeta);
   }
 
   renderShort(initialShort.length ? initialShort : initialLong.points);

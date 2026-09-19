@@ -67,7 +67,17 @@ export function lineTimeChart(
       responsive: true,
       maintainAspectRatio: true,
       scales: {
-        x: { type: 'time', time: { unit: timeUnit } },
+        x: {
+          type: 'time',
+          time: {
+            unit: timeUnit,
+            displayFormats:
+              timeUnit === 'hour'
+                ? { hour: 'MMM d HH:mm', day: 'MMM d' }
+                : { day: 'MMM d' },
+          },
+          ticks: { maxTicksLimit: timeUnit === 'hour' ? 16 : undefined },
+        },
         y: {
           title: yLabel ? { display: true, text: yLabel } : undefined,
         },

@@ -44,23 +44,35 @@ async function init() {
       onRangeChange: (k) => loadFredRange(FRED_SERIES.nasdaq, 'nasdaq.json', k),
     });
 
-    createMetricPanel(app, btc.short.points, btc.long, {
-      title: 'Bitcoin — USD',
-      yLabel: 'USD',
-      shortLabel: 'Last 7 days (hourly)',
-      shortFilterHours: 168,
-      shortTimeUnit: 'hour',
-      onRangeChange: (k) => reloadCoinGeckoLong('bitcoin', 'bitcoin.json', k),
-    });
+    createMetricPanel(
+      app,
+      btc.short.points,
+      btc.long,
+      {
+        title: 'Bitcoin — USD',
+        yLabel: 'USD',
+        shortLabel: 'Last 7 days (hourly)',
+        shortFilterHours: 168,
+        shortTimeUnit: 'hour',
+        onRangeChange: (k) => reloadCoinGeckoLong('bitcoin', 'bitcoin.json', k),
+      },
+      btc.short,
+    );
 
-    createMetricPanel(app, eth.short.points, eth.long, {
-      title: 'Ethereum — USD',
-      yLabel: 'USD',
-      shortLabel: 'Last 7 days (hourly)',
-      shortFilterHours: 168,
-      shortTimeUnit: 'hour',
-      onRangeChange: (k) => reloadCoinGeckoLong('ethereum', 'ethereum.json', k),
-    });
+    createMetricPanel(
+      app,
+      eth.short.points,
+      eth.long,
+      {
+        title: 'Ethereum — USD',
+        yLabel: 'USD',
+        shortLabel: 'Last 7 days (hourly)',
+        shortFilterHours: 168,
+        shortTimeUnit: 'hour',
+        onRangeChange: (k) => reloadCoinGeckoLong('ethereum', 'ethereum.json', k),
+      },
+      eth.short,
+    );
 
     createFearGreedPanel(app, fng);
 
