@@ -1,6 +1,7 @@
 import './styles.css';
 import { FRED_SERIES, loadFredRange, loadFredWithFallback } from './data/fred';
 import { loadCoinGecko, reloadCoinGeckoLong } from './data/coingecko';
+import { loadMetalPair } from './data/metals';
 import { loadFearGreed } from './data/fearGreed';
 import { goldSilverRatio } from './data/ratio';
 import { loadXjo } from './data/xjo';
@@ -23,10 +24,10 @@ async function init() {
       loadFredWithFallback(FRED_SERIES.nasdaq, 'nasdaq.json'),
       loadCoinGecko('bitcoin', 'bitcoin.json', '6m', '7'),
       loadCoinGecko('ethereum', 'ethereum.json', '6m', '7'),
-      loadFredWithFallback(FRED_SERIES.gold, 'gold.json', undefined, [
+      loadMetalPair(FRED_SERIES.gold, 'gold.json', 'gold-7d.json', 'GC=F', [
         'GOLDAMGBD228NLBM',
       ]),
-      loadFredWithFallback(FRED_SERIES.silver, 'silver.json', undefined, []),
+      loadMetalPair(FRED_SERIES.silver, 'silver.json', 'silver-7d.json', 'SI=F'),
       loadXjo('6m'),
     ]);
 
@@ -76,23 +77,45 @@ async function init() {
 
     createFearGreedPanel(app, fng);
 
-    createMetricPanel(app, lastNDays(gold.points, 30), { ...gold, points: filterByRange(gold.points, '6m') }, {
-      title: 'Gold — USD',
-      yLabel: 'USD / oz',
-      onRangeChange: (k) => loadFredRange(FRED_SERIES.gold, 'gold.json', k),
-    });
+    createMetricPanel(
+      app,
+      gold.short.points,
+      gold.long,
+      {
+        title: 'Gold — USD',
+        yLabel: 'USD / oz',
+        shortLabel: 'Last 7 days (hourly)',
+        shortFilterHours: 168,
+        shortTimeUnit: 'hour',
+        onRangeChange: (k) => loadFredRange(FRED_SERIES.gold, 'gold.json', k),
+      },
+      gold.short,
+    );
 
-    createMetricPanel(app, lastNDays(silver.points, 30), { ...silver, points: filterByRange(silver.points, '6m') }, {
-      title: 'Silver — USD',
-      yLabel: 'USD / oz',
-      onRangeChange: (k) => loadFredRange(FRED_SERIES.silver, 'silver.json', k),
-    });
+    createMetricPanel(
+      app,
+      silver.short.points,
+      silver.long,
+      {
+        title: 'Silver — USD',
+        yLabel: 'USD / oz',
+        shortLabel: 'Last 7 days (hourly)',
+        shortFilterHours: 168,
+        shortTimeUnit: 'hour',
+        onRangeChange: (k) => loadFredRange(FRED_SERIES.silver, 'silver.json', k),
+      },
+      silver.short,
+    );
 
-    const ratioFull = goldSilverRatio(gold.points, silver.points);
+    const ratioFull = goldSilverRatio(gold.daily.points, silver.daily.points);
     createMetricPanel(
       app,
       lastNDays(ratioFull, 30),
-      { points: filterByRange(ratioFull, '6m'), source: gold.source, fetchedAt: gold.fetchedAt },
+      {
+        points: filterByRange(ratioFull, '6m'),
+        source: gold.daily.source,
+        fetchedAt: gold.daily.fetchedAt,
+      },
       {
         title: 'Gold / Silver ratio',
         onRangeChange: async (k) => {

@@ -1,9 +1,8 @@
 import type { DataPoint, RangeKey, SeriesPayload } from './types';
 import { coingeckoDays, filterByRange } from './ranges';
+import { isHourlyGranular, MIN_HOURLY_SHORT_POINTS, sortByTime } from './hourly';
 
 type MarketChartResponse = { prices: [number, number][] };
-
-const MIN_HOURLY_SHORT_POINTS = 48;
 
 function toPoints(prices: [number, number][]): DataPoint[] {
   return prices.map(([ts, value]) => ({
@@ -11,24 +10,6 @@ function toPoints(prices: [number, number][]): DataPoint[] {
     date: new Date(ts).toISOString().slice(0, 10),
     value,
   }));
-}
-
-function sortByTime(points: DataPoint[]): DataPoint[] {
-  return [...points].sort((a, b) => (a.time ?? 0) - (b.time ?? 0));
-}
-
-/** CoinGecko free tier often returns ~1 point/day for days=7 despite a 200 OK. */
-function isHourlyGranular(points: DataPoint[]): boolean {
-  if (points.length < MIN_HOURLY_SHORT_POINTS) return false;
-  const withTime = points.filter((p) => p.time != null);
-  if (withTime.length < MIN_HOURLY_SHORT_POINTS) return false;
-  const sorted = sortByTime(withTime);
-  let smallGaps = 0;
-  for (let i = 1; i < sorted.length; i++) {
-    const gap = (sorted[i]!.time! - sorted[i - 1]!.time!) / (60 * 60 * 1000);
-    if (gap > 0 && gap <= 2) smallGaps++;
-  }
-  return smallGaps >= 24;
 }
 
 export async function fetchCoinGecko(id: string, days: string): Promise<DataPoint[]> {

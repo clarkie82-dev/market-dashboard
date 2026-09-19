@@ -255,6 +255,21 @@ await writeJson('ethereum-7d.json', {
   fetchedAt,
 });
 
+async function writeMetalHourly7d(file, yahooSymbol) {
+  try {
+    await writeJson(file, {
+      points: await fetchSeriesWithFallback([() => fetchYahooHourly7d(yahooSymbol)]),
+      fetchedAt,
+    });
+  } catch (e) {
+    console.warn(`${file} hourly fetch failed:`, e.message);
+    await writeJson(file, { points: [], fetchedAt });
+  }
+}
+
+await writeMetalHourly7d('gold-7d.json', 'GC=F');
+await writeMetalHourly7d('silver-7d.json', 'SI=F');
+
 await writeJson('bitcoin.json', { points: await fetchCrypto('bitcoin', 'btcusd'), fetchedAt });
 await writeJson('ethereum.json', {
   points: await fetchCrypto('ethereum', 'ethusd'),
