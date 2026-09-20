@@ -54,11 +54,6 @@ export async function createTreasuryBlock(container: HTMLElement): Promise<void>
   longWrap.className = 'chart-wrap';
   longWrap.innerHTML = '<h3>Historical</h3>';
   const longCanvas = document.createElement('canvas');
-  longWrap.appendChild(longCanvas);
-
-  chartRow.append(shortWrap, longWrap);
-  block.appendChild(chartRow);
-
   const rangeRow = document.createElement('div');
   rangeRow.className = 'range-row';
   const rangeLabel = document.createElement('label');
@@ -72,7 +67,11 @@ export async function createTreasuryBlock(container: HTMLElement): Promise<void>
     select.appendChild(opt);
   }
   rangeRow.append(rangeLabel, select);
-  block.appendChild(rangeRow);
+
+  longWrap.append(longCanvas, rangeRow);
+
+  chartRow.append(shortWrap, longWrap);
+  block.appendChild(chartRow);
 
   container.appendChild(block);
 

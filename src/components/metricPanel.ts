@@ -65,11 +65,6 @@ export function createMetricPanel(
   const longH = document.createElement('h3');
   longH.textContent = opts.longLabel ?? 'Historical';
   const longCanvas = document.createElement('canvas');
-  longWrap.append(longH, longCanvas);
-
-  chartRow.append(shortWrap, longWrap);
-  panel.appendChild(chartRow);
-
   const rangeRow = document.createElement('div');
   rangeRow.className = 'range-row';
   const rangeLabel = document.createElement('label');
@@ -83,7 +78,11 @@ export function createMetricPanel(
     select.appendChild(opt);
   }
   rangeRow.append(rangeLabel, select);
-  panel.appendChild(rangeRow);
+
+  longWrap.append(longH, longCanvas, rangeRow);
+
+  chartRow.append(shortWrap, longWrap);
+  panel.appendChild(chartRow);
 
   container.appendChild(panel);
 
