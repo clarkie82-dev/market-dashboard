@@ -1,4 +1,5 @@
 import type { DataPoint } from './types';
+import { filterLastHours } from './ranges';
 
 export const MIN_HOURLY_SHORT_POINTS = 48;
 
@@ -18,4 +19,35 @@ export function isHourlyGranular(points: DataPoint[]): boolean {
     if (gap > 0 && gap <= 2) smallGaps++;
   }
   return smallGaps >= 24;
+}
+
+export function uniqueCalendarDays(points: DataPoint[]): number {
+  return new Set(points.map((p) => p.date)).size;
+}
+
+export function shortHourlyTitle(points: DataPoint[], targetDays = 7): string {
+  const days = uniqueCalendarDays(points);
+  if (days >= targetDays) return `Last ${targetDays} days (hourly)`;
+  if (days <= 0) return 'Recent hourly';
+  return `Last ~${days} days (hourly)`;
+}
+
+export function selectShortHourlyWindow(points: DataPoint[], hours = 168): DataPoint[] {
+  const sorted = sortByTime(points);
+  if (sorted.length === 0) return sorted;
+  const filtered = filterLastHours(sorted, hours);
+  if (filtered.length >= MIN_HOURLY_SHORT_POINTS && isHourlyGranular(filtered)) {
+    return filtered;
+  }
+  return sorted;
+}
+
+export function formatPointTime(timeMs: number | undefined): string {
+  if (timeMs == null) return '';
+  return new Date(timeMs).toLocaleString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
 }

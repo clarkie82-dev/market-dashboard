@@ -14,6 +14,7 @@ import {
 import 'chartjs-adapter-date-fns';
 import type { DataPoint } from '../data/types';
 import type { YieldCurvePoint } from '../data/yieldCurve';
+import { formatPointTime } from '../data/hourly';
 
 Chart.register(
   LineController,
@@ -83,6 +84,67 @@ export function lineTimeChart(
         },
       },
       plugins: { legend: { display: !!label } },
+    },
+  };
+  return new Chart(canvas, cfg);
+}
+
+export function lineSequentialHourlyChart(
+  canvas: HTMLCanvasElement,
+  points: DataPoint[],
+  label: string,
+  yLabel?: string,
+): Chart {
+  const cfg: ChartConfiguration<'line'> = {
+    type: 'line',
+    data: {
+      datasets: [
+        {
+          label,
+          data: points.map((p, i) => ({ x: i, y: p.value })),
+          borderColor: COLORS[0],
+          backgroundColor: 'transparent',
+          tension: 0.1,
+          pointRadius: 0,
+          borderWidth: 2,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      scales: {
+        x: {
+          type: 'linear',
+          ticks: {
+            maxTicksLimit: 10,
+            callback(tickValue) {
+              const i = typeof tickValue === 'number' ? Math.round(tickValue) : 0;
+              const p = points[i];
+              return p ? formatPointTime(p.time) : '';
+            },
+          },
+        },
+        y: {
+          title: yLabel ? { display: true, text: yLabel } : undefined,
+        },
+      },
+      plugins: {
+        legend: { display: !!label },
+        tooltip: {
+          callbacks: {
+            title(items) {
+              const i = items[0]?.parsed.x;
+              if (i == null) return '';
+              return formatPointTime(points[Math.round(i)]?.time);
+            },
+            label(item) {
+              const y = item.parsed.y;
+              return y != null ? `${label}: ${y.toLocaleString()}` : label;
+            },
+          },
+        },
+      },
     },
   };
   return new Chart(canvas, cfg);

@@ -84,9 +84,8 @@ async function init() {
       {
         title: 'Gold — USD',
         yLabel: 'USD / oz',
-        shortLabel: 'Last 7 days (hourly)',
         shortFilterHours: 168,
-        shortTimeUnit: 'hour',
+        shortCondenseSequential: true,
         onRangeChange: (k) => loadFredRange(FRED_SERIES.gold, 'gold.json', k),
       },
       gold.short,
@@ -99,9 +98,8 @@ async function init() {
       {
         title: 'Silver — USD',
         yLabel: 'USD / oz',
-        shortLabel: 'Last 7 days (hourly)',
         shortFilterHours: 168,
-        shortTimeUnit: 'hour',
+        shortCondenseSequential: true,
         onRangeChange: (k) => loadFredRange(FRED_SERIES.silver, 'silver.json', k),
       },
       silver.short,

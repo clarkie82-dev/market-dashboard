@@ -1,8 +1,14 @@
 import type { Chart } from 'chart.js';
 import type { DataPoint, RangeKey, SeriesPayload } from '../data/types';
 import { RANGE_OPTIONS } from '../data/types';
-import { destroyChart, lineTimeChart, metaLine } from '../charts/chartHelpers';
+import {
+  destroyChart,
+  lineSequentialHourlyChart,
+  lineTimeChart,
+  metaLine,
+} from '../charts/chartHelpers';
 import { filterLastHours, lastNDays } from '../data/ranges';
+import { selectShortHourlyWindow, shortHourlyTitle } from '../data/hourly';
 
 export type MetricPanelOptions = {
   title: string;
@@ -12,6 +18,7 @@ export type MetricPanelOptions = {
   shortDays?: number;
   shortFilterHours?: number;
   shortTimeUnit?: 'day' | 'hour';
+  shortCondenseSequential?: boolean;
   onRangeChange: (key: RangeKey) => Promise<SeriesPayload>;
 };
 
@@ -88,6 +95,12 @@ export function createMetricPanel(
 
   function renderShort(points: DataPoint[]) {
     shortChart = destroyChart(shortChart);
+    if (opts.shortCondenseSequential) {
+      const window = selectShortHourlyWindow(points, opts.shortFilterHours ?? 168);
+      shortH.textContent = shortHourlyTitle(window);
+      shortChart = lineSequentialHourlyChart(shortCanvas, window, opts.title, opts.yLabel);
+      return;
+    }
     const filtered =
       opts.shortFilterHours != null
         ? filterLastHours(points, opts.shortFilterHours)
