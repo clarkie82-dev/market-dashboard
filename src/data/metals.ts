@@ -27,11 +27,11 @@ function sortByDate(points: DataPoint[]): DataPoint[] {
   return [...points].sort((a, b) => a.date.localeCompare(b.date));
 }
 
-function isValidDailySeries(points: DataPoint[]): boolean {
+export function isValidDailySeries(points: DataPoint[]): boolean {
   return points.length >= MIN_DAILY_SERIES_POINTS && isDailyGranular(points);
 }
 
-function isValidDailyRangeSlice(points: DataPoint[], rangeKey: RangeKey): boolean {
+export function isValidDailyRangeSlice(points: DataPoint[], rangeKey: RangeKey): boolean {
   const min = minDailyForRange(rangeKey);
   if (points.length < Math.min(min, 15)) return false;
   return isDailyGranular(points, Math.min(90, points.length));
@@ -39,16 +39,12 @@ function isValidDailyRangeSlice(points: DataPoint[], rangeKey: RangeKey): boolea
 
 type RangeCandidate = SeriesPayload;
 
-function pickDensest(candidates: RangeCandidate[]): RangeCandidate | null {
+export function pickDensest(candidates: RangeCandidate[]): RangeCandidate | null {
   if (!candidates.length) return null;
   return candidates.reduce((best, c) => (c.points.length > best.points.length ? c : best));
 }
 
-export async function fetchYahooDailyChart(
-  symbol: string,
-  rangeKey: RangeKey,
-): Promise<DataPoint[]> {
-  const range = yahooChartRange(rangeKey);
+export async function fetchYahooDailyRaw(symbol: string, range: string): Promise<DataPoint[]> {
   const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=${range}`;
   const res = await fetch(url, {
     headers: { 'User-Agent': 'Mozilla/5.0 (compatible; market-dashboard/1.0)' },
@@ -72,7 +68,29 @@ export async function fetchYahooDailyChart(
     });
   }
   if (!points.length) throw new Error(`Yahoo daily ${symbol}: no rows`);
-  const sorted = sortByDate(points);
+  return sortByDate(points);
+}
+
+/** Prefer 10y/5y when `max` returns monthly bars (futures and indices). */
+export async function fetchYahooDailyDense(symbol: string): Promise<DataPoint[]> {
+  let lastErr: Error | undefined;
+  for (const range of ['10y', '5y', 'max']) {
+    try {
+      const points = await fetchYahooDailyRaw(symbol, range);
+      if (isValidDailySeries(points)) return points;
+      lastErr = new Error(`Yahoo ${symbol} (${range}): not daily-granular (${points.length} pts)`);
+    } catch (e) {
+      lastErr = e instanceof Error ? e : new Error(String(e));
+    }
+  }
+  throw lastErr ?? new Error(`Yahoo ${symbol}: no daily-granular chart`);
+}
+
+export async function fetchYahooDailyChart(
+  symbol: string,
+  rangeKey: RangeKey,
+): Promise<DataPoint[]> {
+  const sorted = await fetchYahooDailyRaw(symbol, yahooChartRange(rangeKey));
   return yahooRangeNeedsClientFilter(rangeKey)
     ? filterByRange(sorted, rangeKey)
     : sorted;
@@ -96,15 +114,11 @@ export async function loadMetalDailySeries(
   fredSeriesId: string,
   fredAlternates: string[] = [],
 ): Promise<SeriesPayload> {
-  for (const rangeKey of ['10y', 'max'] as const) {
-    try {
-      const points = await fetchYahooDailyChart(yahooSymbol, rangeKey);
-      if (isValidDailySeries(points)) {
-        return { points, source: 'live' };
-      }
-    } catch {
-      /* fallback */
-    }
+  try {
+    const points = await fetchYahooDailyDense(yahooSymbol);
+    return { points, source: 'live' };
+  } catch {
+    /* fallback */
   }
   try {
     const fb = await loadDailyFallbackJson(fallbackFile);

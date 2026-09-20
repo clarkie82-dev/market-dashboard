@@ -84,13 +84,13 @@ async function fetchYahooChart(symbol, range = 'max') {
   return points;
 }
 
-/** Yahoo `range=max` for futures is often ~monthly; prefer dense daily windows first. */
-async function fetchYahooDailyMetal(symbol) {
+/** Yahoo `range=max` for futures/indices is often ~monthly; prefer dense daily windows first. */
+async function fetchYahooDailyDenseYahoo(symbol) {
   let lastErr;
   for (const range of ['10y', '5y', 'max']) {
     try {
       const points = await fetchYahooChart(symbol, range);
-      if (hasDailyMetalPoints({ points })) return points;
+      if (hasDailyPoints({ points })) return points;
       lastErr = new Error(`Yahoo ${symbol} (${range}): not daily-granular (${points.length} pts)`);
     } catch (e) {
       lastErr = e;
@@ -98,6 +98,9 @@ async function fetchYahooDailyMetal(symbol) {
   }
   throw lastErr ?? new Error(`Yahoo ${symbol}: no daily-granular chart`);
 }
+
+const fetchYahooDailyMetal = fetchYahooDailyDenseYahoo;
+const fetchYahooDailyIndex = fetchYahooDailyDenseYahoo;
 
 async function fetchSeriesWithFallback(providers) {
   let lastErr;
@@ -208,8 +211,9 @@ function isDailyGranular(points, sampleSize = 90) {
 }
 
 const hasPoints = (d) => Array.isArray(d?.points) && d.points.length > 0;
-const hasDailyMetalPoints = (d) =>
+const hasDailyPoints = (d) =>
   hasPoints(d) && d.points.length >= 100 && isDailyGranular(d.points);
+const hasDailyMetalPoints = hasDailyPoints;
 const hasFng = (d) => Number.isFinite(d?.value);
 const hasTreasury = (d) =>
   d?.series && treasuryIds.every((id) => Array.isArray(d.series[id]) && d.series[id].length > 0);
@@ -406,13 +410,13 @@ await writeJsonOrKeepCache(
   'xjo.json',
   async () => ({
     points: await fetchSeriesWithFallback([
-      () => fetchYahooChart('^AXJO'),
+      () => fetchYahooDailyIndex('^AXJO'),
       () => fetchStooq('xjo.au'),
       () => fetchStooq('^axjo'),
     ]),
     fetchedAt,
   }),
-  hasPoints,
+  hasDailyPoints,
 );
 
 console.log('Done.', fetchedAt);

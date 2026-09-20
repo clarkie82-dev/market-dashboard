@@ -4,7 +4,7 @@ import { loadCoinGecko, reloadCoinGeckoLong } from './data/coingecko';
 import { loadMetalLongRange, loadMetalPair, type MetalLongRangeOpts } from './data/metals';
 import { loadFearGreed } from './data/fearGreed';
 import { goldSilverRatio } from './data/ratio';
-import { loadXjo, loadXjoPair } from './data/xjo';
+import { loadXjoLongRange, loadXjoPair } from './data/xjo';
 import { lastNDays, filterByRange } from './data/ranges';
 import { createMetricPanel } from './components/metricPanel';
 import { createFearGreedPanel } from './components/fearGreedDial';
@@ -156,7 +156,7 @@ async function init() {
         yLabel: 'Index',
         shortFilterHours: 168,
         shortCondenseSequential: true,
-        onRangeChange: (k) => loadXjo(k),
+        onRangeChange: (k) => loadXjoLongRange(k, xjo.daily),
       },
       xjo.short,
     );
