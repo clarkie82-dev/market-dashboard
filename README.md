@@ -2,8 +2,7 @@
 
 Basic finance dashboard: indices, crypto, metals, US Treasury yields (with yield curve), and ASX 200. Data loads once when you open the page (no auto-refresh).
 
-Live demo: after you enable GitHub Pages, the site will be at  
-`https://<your-username>.github.io/market-dashboard/`
+Live site: https://clarkie82-dev.github.io/market-dashboard/
 
 ## Local development
 
@@ -51,8 +50,21 @@ No API keys are required. The workflow fetches from FRED CSV, CoinGecko, Alterna
 
 Fear & Greed: attribution to alternative.me is shown on the page per their API terms.
 
+## Cached data (`public/data/`)
+
+The JSON files under `public/data/` are **tracked in git** as shared fallbacks when live API calls fail in the browser. They are also the baseline for CI’s `writeJsonOrKeepCache` logic when a fetch step fails during deploy.
+
+**Production freshness** comes from GitHub Actions: every push to `main` and the daily cron run `fetch-market-data` before build. You do not need to commit local fetch output for the live site to update.
+
+**Local workflow**
+
+1. Run `npm run fetch-data` when you want fresh fallbacks for offline dev or testing the fetch script.
+2. Do **not** include `public/data/*.json` in feature commits unless you intentionally refresh the shared snapshot (e.g. new metric file or fetch-script change).
+3. After local fetch, discard incidental diffs: `npm run restore-data-cache` (same as `git restore public/data/`).
+
 ## Scripts
 
 - `npm run dev` — Vite dev server
 - `npm run build` — TypeScript check + production build
-- `npm run fetch-data` — Refresh `public/data/` from external APIs
+- `npm run fetch-data` — Refresh `public/data/` from external APIs (local dev; not required for Pages deploy)
+- `npm run restore-data-cache` — Reset `public/data/` to last committed versions
