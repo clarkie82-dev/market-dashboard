@@ -1,4 +1,4 @@
-import { writeFile, mkdir } from 'node:fs/promises';
+import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -29,9 +29,18 @@ function parseFredCsv(text, seriesId) {
 
 async function fetchFred(seriesId, cosd = '1950-01-01', coed = today) {
   const url = `${FRED_CSV}?id=${encodeURIComponent(seriesId)}&cosd=${cosd}&coed=${coed}`;
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`FRED ${seriesId}: ${res.status}`);
-  return parseFredCsv(await res.text(), seriesId);
+  let lastStatus;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const res = await fetch(url);
+    if (res.ok) return parseFredCsv(await res.text(), seriesId);
+    lastStatus = res.status;
+    if (attempt === 0 && (res.status === 404 || res.status >= 500)) {
+      await new Promise((r) => setTimeout(r, 2000));
+      continue;
+    }
+    break;
+  }
+  throw new Error(`FRED ${seriesId}: ${lastStatus}`);
 }
 
 async function fetchStooq(symbol) {
@@ -132,6 +141,42 @@ async function writeJson(name, data) {
   console.log('wrote', name);
 }
 
+async function readExistingJson(name) {
+  try {
+    const text = await readFile(path.join(outDir, name), 'utf8');
+    return JSON.parse(text);
+  } catch {
+    return null;
+  }
+}
+
+/** Try to refresh JSON; on failure keep prior file if it passes isValid. */
+async function writeJsonOrKeepCache(name, produce, isValid) {
+  try {
+    const data = await produce();
+    if (!isValid(data)) throw new Error(`${name}: empty or invalid fetch result`);
+    await writeJson(name, data);
+    return;
+  } catch (e) {
+    console.warn(`${name} update failed:`, e.message);
+  }
+  const existing = await readExistingJson(name);
+  if (existing && isValid(existing)) {
+    const asOf = existing.fetchedAt ? ` (as of ${existing.fetchedAt})` : '';
+    console.warn(`Keeping existing ${name}${asOf}`);
+    return;
+  }
+  throw new Error(`${name}: fetch failed and no usable cached file`);
+}
+
+const treasuryIds = ['DGS3MO', 'DGS5', 'DGS10', 'DGS20', 'DGS30'];
+
+const hasPoints = (d) => Array.isArray(d?.points) && d.points.length > 0;
+const hasFng = (d) => Number.isFinite(d?.value);
+const hasTreasury = (d) =>
+  d?.series && treasuryIds.every((id) => Array.isArray(d.series[id]) && d.series[id].length > 0);
+const hasHourlyPoints = (d) => Array.isArray(d?.points) && d.points.length >= 24;
+
 await mkdir(outDir, { recursive: true });
 
 const fredSeries = {
@@ -140,32 +185,61 @@ const fredSeries = {
 };
 
 for (const [file, id] of Object.entries(fredSeries)) {
-  await writeJson(`${file}.json`, { points: await fetchFred(id), fetchedAt });
+  const name = `${file}.json`;
+  await writeJsonOrKeepCache(
+    name,
+    async () => ({ points: await fetchFred(id), fetchedAt }),
+    hasPoints,
+  );
 }
 
-await writeJson('gold.json', {
-  points: await fetchSeriesWithFallback([
-    () => fetchFred('GOLDPMGBD228NLBM'),
-    () => fetchYahooChart('GC=F'),
-    () => fetchStooq('xauusd'),
-  ]),
-  fetchedAt,
-});
-await writeJson('silver.json', {
-  points: await fetchSeriesWithFallback([
-    () => fetchFred('SLVPRUSD'),
-    () => fetchYahooChart('SI=F'),
-    () => fetchStooq('xagususd'),
-  ]),
-  fetchedAt,
-});
+await writeJsonOrKeepCache(
+  'gold.json',
+  async () => ({
+    points: await fetchSeriesWithFallback([
+      () => fetchFred('GOLDPMGBD228NLBM'),
+      () => fetchYahooChart('GC=F'),
+      () => fetchStooq('xauusd'),
+    ]),
+    fetchedAt,
+  }),
+  hasPoints,
+);
+await writeJsonOrKeepCache(
+  'silver.json',
+  async () => ({
+    points: await fetchSeriesWithFallback([
+      () => fetchFred('SLVPRUSD'),
+      () => fetchYahooChart('SI=F'),
+      () => fetchStooq('xagususd'),
+    ]),
+    fetchedAt,
+  }),
+  hasPoints,
+);
 
-const treasuryIds = ['DGS3MO', 'DGS5', 'DGS10', 'DGS20', 'DGS30'];
-const treasurySeries = {};
-for (const id of treasuryIds) {
-  treasurySeries[id] = await fetchFred(id);
+async function produceTreasuryJson() {
+  const prev = await readExistingJson('treasury.json');
+  const series = { ...(prev?.series ?? {}) };
+  let refreshed = false;
+  for (const id of treasuryIds) {
+    try {
+      const points = await fetchFred(id);
+      if (points.length) {
+        series[id] = points;
+        refreshed = true;
+      }
+    } catch (e) {
+      console.warn(`FRED ${id} failed:`, e.message);
+    }
+    if (!series[id]?.length) {
+      throw new Error(`Treasury ${id}: no data and no cache`);
+    }
+  }
+  return { series, fetchedAt: refreshed ? fetchedAt : (prev?.fetchedAt ?? fetchedAt) };
 }
-await writeJson('treasury.json', { series: treasurySeries, fetchedAt });
+
+await writeJsonOrKeepCache('treasury.json', produceTreasuryJson, hasTreasury);
 
 function marketChartToHourlyPoints(prices) {
   return (prices ?? []).map(([ts, value]) => ({
@@ -238,52 +312,68 @@ async function fetchHourly7d({ coinId, binanceSymbol, yahooSymbol }) {
   ]);
 }
 
-await writeJson('bitcoin-7d.json', {
-  points: await fetchHourly7d({
-    coinId: 'bitcoin',
-    binanceSymbol: 'BTCUSDT',
-    yahooSymbol: 'BTC-USD',
+await writeJsonOrKeepCache(
+  'bitcoin-7d.json',
+  async () => ({
+    points: await fetchHourly7d({
+      coinId: 'bitcoin',
+      binanceSymbol: 'BTCUSDT',
+      yahooSymbol: 'BTC-USD',
+    }),
+    fetchedAt,
   }),
-  fetchedAt,
-});
-await writeJson('ethereum-7d.json', {
-  points: await fetchHourly7d({
-    coinId: 'ethereum',
-    binanceSymbol: 'ETHUSDT',
-    yahooSymbol: 'ETH-USD',
+  hasHourlyPoints,
+);
+await writeJsonOrKeepCache(
+  'ethereum-7d.json',
+  async () => ({
+    points: await fetchHourly7d({
+      coinId: 'ethereum',
+      binanceSymbol: 'ETHUSDT',
+      yahooSymbol: 'ETH-USD',
+    }),
+    fetchedAt,
   }),
-  fetchedAt,
-});
+  hasHourlyPoints,
+);
 
 async function writeMetalHourly7d(file, yahooSymbol) {
-  try {
-    await writeJson(file, {
+  await writeJsonOrKeepCache(
+    file,
+    async () => ({
       points: await fetchSeriesWithFallback([() => fetchYahooHourly7d(yahooSymbol)]),
       fetchedAt,
-    });
-  } catch (e) {
-    console.warn(`${file} hourly fetch failed:`, e.message);
-    await writeJson(file, { points: [], fetchedAt });
-  }
+    }),
+    hasHourlyPoints,
+  );
 }
 
 await writeMetalHourly7d('gold-7d.json', 'GC=F');
 await writeMetalHourly7d('silver-7d.json', 'SI=F');
 
-await writeJson('bitcoin.json', { points: await fetchCrypto('bitcoin', 'btcusd'), fetchedAt });
-await writeJson('ethereum.json', {
-  points: await fetchCrypto('ethereum', 'ethusd'),
-  fetchedAt,
-});
-await writeJson('fear-greed.json', await fetchFng());
+await writeJsonOrKeepCache(
+  'bitcoin.json',
+  async () => ({ points: await fetchCrypto('bitcoin', 'btcusd'), fetchedAt }),
+  hasPoints,
+);
+await writeJsonOrKeepCache(
+  'ethereum.json',
+  async () => ({ points: await fetchCrypto('ethereum', 'ethusd'), fetchedAt }),
+  hasPoints,
+);
+await writeJsonOrKeepCache('fear-greed.json', fetchFng, hasFng);
 
-await writeJson('xjo.json', {
-  points: await fetchSeriesWithFallback([
-    () => fetchYahooChart('^AXJO'),
-    () => fetchStooq('xjo.au'),
-    () => fetchStooq('^axjo'),
-  ]),
-  fetchedAt,
-});
+await writeJsonOrKeepCache(
+  'xjo.json',
+  async () => ({
+    points: await fetchSeriesWithFallback([
+      () => fetchYahooChart('^AXJO'),
+      () => fetchStooq('xjo.au'),
+      () => fetchStooq('^axjo'),
+    ]),
+    fetchedAt,
+  }),
+  hasPoints,
+);
 
 console.log('Done.', fetchedAt);
