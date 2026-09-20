@@ -9,6 +9,7 @@ import {
 } from '../charts/chartHelpers';
 import { filterLastHours, lastNDays } from '../data/ranges';
 import { selectShortHourlyWindow, shortHourlyTitle } from '../data/hourly';
+import { meanValue } from '../data/ratio';
 
 export type MetricPanelOptions = {
   title: string;
@@ -22,6 +23,8 @@ export type MetricPanelOptions = {
   shortTimeUnit?: 'day' | 'hour';
   shortCondenseSequential?: boolean;
   lineColor?: string;
+  /** Dashed horizontal mean on the historical chart only (recomputed per range). */
+  historicalRangeAverage?: boolean;
   onRangeChange: (key: RangeKey) => Promise<SeriesPayload>;
 };
 
@@ -125,6 +128,16 @@ export function createMetricPanel(
 
   function renderLong(payload: SeriesPayload) {
     longChart = destroyChart(longChart);
+    let referenceLine: { label: string; value: number } | undefined;
+    if (opts.historicalRangeAverage) {
+      const avg = meanValue(payload.points);
+      if (avg != null) {
+        referenceLine = {
+          label: `Range average (${avg.toFixed(1)})`,
+          value: avg,
+        };
+      }
+    }
     longChart = lineTimeChart(
       longCanvas,
       payload.points,
@@ -132,6 +145,7 @@ export function createMetricPanel(
       opts.yLabel,
       'day',
       opts.lineColor,
+      referenceLine,
     );
     updateMeta(payload, initialShortMeta);
   }

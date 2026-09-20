@@ -150,6 +150,7 @@ async function init() {
       },
       {
         title: 'Gold / Silver ratio',
+        historicalRangeAverage: true,
         onRangeChange: async (k) => {
           const [g, s] = await Promise.all([
             loadMetalLongRange({ ...goldLongOpts, dailySeries: gold.daily }, k),

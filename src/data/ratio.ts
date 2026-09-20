@@ -9,3 +9,15 @@ export function goldSilverRatio(gold: DataPoint[], silver: DataPoint[]): DataPoi
   }
   return out;
 }
+
+export function meanValue(points: DataPoint[]): number | undefined {
+  let sum = 0;
+  let n = 0;
+  for (const p of points) {
+    if (!Number.isFinite(p.value)) continue;
+    sum += p.value;
+    n++;
+  }
+  if (n === 0) return undefined;
+  return sum / n;
+}

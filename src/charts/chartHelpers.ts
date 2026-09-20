@@ -40,6 +40,14 @@ export function pointToX(p: DataPoint): number {
   return p.time ?? new Date(`${p.date}T12:00:00Z`).getTime();
 }
 
+const REFERENCE_LINE_COLOR = '#64748b';
+
+export type TimeChartReferenceLine = {
+  label: string;
+  value: number;
+  color?: string;
+};
+
 export function lineTimeChart(
   canvas: HTMLCanvasElement,
   points: DataPoint[],
@@ -47,25 +55,41 @@ export function lineTimeChart(
   yLabel?: string,
   timeUnit: 'day' | 'hour' = 'day',
   lineColor?: string,
+  referenceLine?: TimeChartReferenceLine,
 ): Chart {
+  const primaryData = points.map((p) => ({
+    x: pointToX(p),
+    y: p.value,
+  }));
+
+  const datasets: ChartConfiguration<'line'>['data']['datasets'] = [
+    {
+      label,
+      data: primaryData,
+      borderColor: lineColor ?? DEFAULT_LINE_COLOR,
+      backgroundColor: 'transparent',
+      tension: 0.1,
+      pointRadius: 0,
+      borderWidth: 2,
+    },
+  ];
+
+  if (referenceLine && points.length > 0) {
+    datasets.push({
+      label: referenceLine.label,
+      data: primaryData.map((p) => ({ x: p.x, y: referenceLine.value })),
+      borderColor: referenceLine.color ?? REFERENCE_LINE_COLOR,
+      backgroundColor: 'transparent',
+      tension: 0,
+      pointRadius: 0,
+      borderWidth: 2,
+      borderDash: [6, 4],
+    });
+  }
+
   const cfg: ChartConfiguration<'line'> = {
     type: 'line',
-    data: {
-      datasets: [
-        {
-          label,
-          data: points.map((p) => ({
-            x: pointToX(p),
-            y: p.value,
-          })),
-          borderColor: lineColor ?? DEFAULT_LINE_COLOR,
-          backgroundColor: 'transparent',
-          tension: 0.1,
-          pointRadius: 0,
-          borderWidth: 2,
-        },
-      ],
-    },
+    data: { datasets },
     options: {
       responsive: true,
       maintainAspectRatio: true,
@@ -85,7 +109,9 @@ export function lineTimeChart(
           title: yLabel ? { display: true, text: yLabel } : undefined,
         },
       },
-      plugins: { legend: { display: !!label } },
+      plugins: {
+        legend: { display: !!(label || referenceLine) },
+      },
     },
   };
   return new Chart(canvas, cfg);
