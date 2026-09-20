@@ -197,8 +197,8 @@ await writeJsonOrKeepCache(
   'gold.json',
   async () => ({
     points: await fetchSeriesWithFallback([
-      () => fetchFred('GOLDPMGBD228NLBM'),
       () => fetchYahooChart('GC=F'),
+      () => fetchFred('GOLDPMGBD228NLBM'),
       () => fetchStooq('xauusd'),
     ]),
     fetchedAt,
@@ -209,8 +209,8 @@ await writeJsonOrKeepCache(
   'silver.json',
   async () => ({
     points: await fetchSeriesWithFallback([
-      () => fetchFred('SLVPRUSD'),
       () => fetchYahooChart('SI=F'),
+      () => fetchFred('SLVPRUSD'),
       () => fetchStooq('xagususd'),
     ]),
     fetchedAt,
@@ -350,6 +350,7 @@ async function writeMetalHourly7d(file, yahooSymbol) {
 
 await writeMetalHourly7d('gold-7d.json', 'GC=F');
 await writeMetalHourly7d('silver-7d.json', 'SI=F');
+await writeMetalHourly7d('xjo-7d.json', '^AXJO');
 
 await writeJsonOrKeepCache(
   'bitcoin.json',

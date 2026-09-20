@@ -1,16 +1,29 @@
 import './styles.css';
 import { FRED_SERIES, loadFredRange, loadFredWithFallback } from './data/fred';
 import { loadCoinGecko, reloadCoinGeckoLong } from './data/coingecko';
-import { loadMetalPair } from './data/metals';
+import { loadMetalLongRange, loadMetalPair, type MetalLongRangeOpts } from './data/metals';
 import { loadFearGreed } from './data/fearGreed';
 import { goldSilverRatio } from './data/ratio';
-import { loadXjo } from './data/xjo';
+import { loadXjo, loadXjoPair } from './data/xjo';
 import { lastNDays, filterByRange } from './data/ranges';
 import { createMetricPanel } from './components/metricPanel';
 import { createFearGreedPanel } from './components/fearGreedDial';
 import { createTreasuryBlock } from './components/treasuryBlock';
 
 const app = document.querySelector<HTMLElement>('#app')!;
+
+const goldLongOpts: MetalLongRangeOpts = {
+  yahooSymbol: 'GC=F',
+  fallbackFile: 'gold.json',
+  fredSeriesId: FRED_SERIES.gold,
+  fredAlternates: ['GOLDAMGBD228NLBM'],
+};
+
+const silverLongOpts: MetalLongRangeOpts = {
+  yahooSymbol: 'SI=F',
+  fallbackFile: 'silver.json',
+  fredSeriesId: FRED_SERIES.silver,
+};
 
 async function init() {
   const loading = document.createElement('p');
@@ -28,7 +41,7 @@ async function init() {
         'GOLDAMGBD228NLBM',
       ]),
       loadMetalPair(FRED_SERIES.silver, 'silver.json', 'silver-7d.json', 'SI=F'),
-      loadXjo('6m'),
+      loadXjoPair('6m'),
     ]);
 
     loading.remove();
@@ -86,7 +99,8 @@ async function init() {
         yLabel: 'USD / oz',
         shortFilterHours: 168,
         shortCondenseSequential: true,
-        onRangeChange: (k) => loadFredRange(FRED_SERIES.gold, 'gold.json', k),
+        onRangeChange: (k) =>
+          loadMetalLongRange({ ...goldLongOpts, dailySeries: gold.daily }, k),
       },
       gold.short,
     );
@@ -100,7 +114,8 @@ async function init() {
         yLabel: 'USD / oz',
         shortFilterHours: 168,
         shortCondenseSequential: true,
-        onRangeChange: (k) => loadFredRange(FRED_SERIES.silver, 'silver.json', k),
+        onRangeChange: (k) =>
+          loadMetalLongRange({ ...silverLongOpts, dailySeries: silver.daily }, k),
       },
       silver.short,
     );
@@ -118,8 +133,8 @@ async function init() {
         title: 'Gold / Silver ratio',
         onRangeChange: async (k) => {
           const [g, s] = await Promise.all([
-            loadFredRange(FRED_SERIES.gold, 'gold.json', k),
-            loadFredRange(FRED_SERIES.silver, 'silver.json', k),
+            loadMetalLongRange({ ...goldLongOpts, dailySeries: gold.daily }, k),
+            loadMetalLongRange({ ...silverLongOpts, dailySeries: silver.daily }, k),
           ]);
           return {
             points: goldSilverRatio(g.points, s.points),
@@ -132,11 +147,19 @@ async function init() {
 
     await createTreasuryBlock(app);
 
-    createMetricPanel(app, lastNDays(xjo.points, 30), xjo, {
-      title: 'ASX 200 (XJO) — AUD',
-      yLabel: 'Index',
-      onRangeChange: (k) => loadXjo(k),
-    });
+    createMetricPanel(
+      app,
+      xjo.short.points,
+      xjo.long,
+      {
+        title: 'ASX 200 (XJO) — AUD',
+        yLabel: 'Index',
+        shortFilterHours: 168,
+        shortCondenseSequential: true,
+        onRangeChange: (k) => loadXjo(k),
+      },
+      xjo.short,
+    );
   } catch (e) {
     loading.textContent = e instanceof Error ? e.message : 'Failed to load dashboard';
     loading.classList.add('error');
