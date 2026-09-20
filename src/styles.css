@@ -91,6 +91,17 @@ header h1 {
   font-size: 1rem;
 }
 
+.fng-panel {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: start;
+}
+
+.fng-panel-main {
+  grid-column: 1;
+  max-width: 100%;
+}
+
 .fng-dial-wrap {
   display: flex;
   flex-direction: column;
@@ -98,12 +109,29 @@ header h1 {
   gap: 0.5rem;
 }
 
+.fng-dial {
+  background: #1e222d;
+  border-radius: 8px;
+  padding: 0.75rem 1rem 0.5rem;
+  width: fit-content;
+}
+
 .fng-dial svg {
-  max-width: 280px;
+  max-width: 140px;
+  width: 100%;
   height: auto;
+  display: block;
 }
 
 .fng-attribution {
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   color: #666;
+  max-width: 20rem;
+  line-height: 1.35;
+}
+
+@media (max-width: 600px) {
+  .fng-panel {
+    grid-template-columns: 1fr;
+  }
 }
