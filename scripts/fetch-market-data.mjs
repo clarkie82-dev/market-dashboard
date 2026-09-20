@@ -84,6 +84,21 @@ async function fetchYahooChart(symbol, range = 'max') {
   return points;
 }
 
+/** Yahoo `range=max` for futures is often ~monthly; prefer dense daily windows first. */
+async function fetchYahooDailyMetal(symbol) {
+  let lastErr;
+  for (const range of ['10y', '5y', 'max']) {
+    try {
+      const points = await fetchYahooChart(symbol, range);
+      if (hasDailyMetalPoints({ points })) return points;
+      lastErr = new Error(`Yahoo ${symbol} (${range}): not daily-granular (${points.length} pts)`);
+    } catch (e) {
+      lastErr = e;
+    }
+  }
+  throw lastErr ?? new Error(`Yahoo ${symbol}: no daily-granular chart`);
+}
+
 async function fetchSeriesWithFallback(providers) {
   let lastErr;
   for (const fn of providers) {
@@ -171,7 +186,30 @@ async function writeJsonOrKeepCache(name, produce, isValid) {
 
 const treasuryIds = ['DGS3MO', 'DGS5', 'DGS10', 'DGS20', 'DGS30'];
 
+function isDailyGranular(points, sampleSize = 90) {
+  if (!Array.isArray(points) || points.length < 20) return false;
+  const sorted = [...points].sort((a, b) => a.date.localeCompare(b.date));
+  const sample = sorted.slice(-Math.min(sampleSize, sorted.length));
+  if (sample.length < 20) return false;
+  const gaps = [];
+  let inBand = 0;
+  for (let i = 1; i < sample.length; i++) {
+    const ms =
+      new Date(`${sample[i].date}T12:00:00Z`).getTime() -
+      new Date(`${sample[i - 1].date}T12:00:00Z`).getTime();
+    const gap = ms / (24 * 60 * 60 * 1000);
+    if (gap <= 0) continue;
+    gaps.push(gap);
+    if (gap >= 1 && gap <= 5) inBand++;
+  }
+  if (gaps.length < 15 || inBand < 30) return false;
+  gaps.sort((a, b) => a - b);
+  return gaps[Math.floor(gaps.length / 2)] <= 4;
+}
+
 const hasPoints = (d) => Array.isArray(d?.points) && d.points.length > 0;
+const hasDailyMetalPoints = (d) =>
+  hasPoints(d) && d.points.length >= 100 && isDailyGranular(d.points);
 const hasFng = (d) => Number.isFinite(d?.value);
 const hasTreasury = (d) =>
   d?.series && treasuryIds.every((id) => Array.isArray(d.series[id]) && d.series[id].length > 0);
@@ -197,25 +235,25 @@ await writeJsonOrKeepCache(
   'gold.json',
   async () => ({
     points: await fetchSeriesWithFallback([
-      () => fetchYahooChart('GC=F'),
+      () => fetchYahooDailyMetal('GC=F'),
       () => fetchFred('GOLDPMGBD228NLBM'),
       () => fetchStooq('xauusd'),
     ]),
     fetchedAt,
   }),
-  hasPoints,
+  hasDailyMetalPoints,
 );
 await writeJsonOrKeepCache(
   'silver.json',
   async () => ({
     points: await fetchSeriesWithFallback([
-      () => fetchYahooChart('SI=F'),
+      () => fetchYahooDailyMetal('SI=F'),
       () => fetchFred('SLVPRUSD'),
       () => fetchStooq('xagususd'),
     ]),
     fetchedAt,
   }),
-  hasPoints,
+  hasDailyMetalPoints,
 );
 
 async function produceTreasuryJson() {

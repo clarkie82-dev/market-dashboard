@@ -6,7 +6,13 @@ import {
   yahooRangeNeedsClientFilter,
 } from './ranges';
 import { loadFredRange, loadFredWithFallback } from './fred';
-import { isHourlyGranular, MIN_HOURLY_SHORT_POINTS, sortByTime } from './hourly';
+import {
+  isDailyGranular,
+  isHourlyGranular,
+  MIN_DAILY_SERIES_POINTS,
+  MIN_HOURLY_SHORT_POINTS,
+  sortByTime,
+} from './hourly';
 
 export type MetalLongRangeOpts = {
   yahooSymbol: string;
@@ -19,6 +25,23 @@ export type MetalLongRangeOpts = {
 
 function sortByDate(points: DataPoint[]): DataPoint[] {
   return [...points].sort((a, b) => a.date.localeCompare(b.date));
+}
+
+function isValidDailySeries(points: DataPoint[]): boolean {
+  return points.length >= MIN_DAILY_SERIES_POINTS && isDailyGranular(points);
+}
+
+function isValidDailyRangeSlice(points: DataPoint[], rangeKey: RangeKey): boolean {
+  const min = minDailyForRange(rangeKey);
+  if (points.length < Math.min(min, 15)) return false;
+  return isDailyGranular(points, Math.min(90, points.length));
+}
+
+type RangeCandidate = SeriesPayload;
+
+function pickDensest(candidates: RangeCandidate[]): RangeCandidate | null {
+  if (!candidates.length) return null;
+  return candidates.reduce((best, c) => (c.points.length > best.points.length ? c : best));
 }
 
 export async function fetchYahooDailyChart(
@@ -73,17 +96,19 @@ export async function loadMetalDailySeries(
   fredSeriesId: string,
   fredAlternates: string[] = [],
 ): Promise<SeriesPayload> {
-  try {
-    const points = await fetchYahooDailyChart(yahooSymbol, 'max');
-    if (points.length >= minDailyForRange('max')) {
-      return { points, source: 'live' };
+  for (const rangeKey of ['10y', 'max'] as const) {
+    try {
+      const points = await fetchYahooDailyChart(yahooSymbol, rangeKey);
+      if (isValidDailySeries(points)) {
+        return { points, source: 'live' };
+      }
+    } catch {
+      /* fallback */
     }
-  } catch {
-    /* fallback */
   }
   try {
     const fb = await loadDailyFallbackJson(fallbackFile);
-    if (fb.points.length >= minDailyForRange('max')) return fb;
+    if (isValidDailySeries(fb.points)) return fb;
   } catch {
     /* fallback */
   }
@@ -100,12 +125,12 @@ export async function loadMetalLongRange(
   opts: MetalLongRangeOpts,
   rangeKey: RangeKey,
 ): Promise<SeriesPayload> {
-  const min = minDailyForRange(rangeKey);
+  const candidates: RangeCandidate[] = [];
 
   try {
     const points = await fetchYahooDailyChart(opts.yahooSymbol, rangeKey);
-    if (points.length >= min) {
-      return { points, source: 'live' };
+    if (isValidDailyRangeSlice(points, rangeKey)) {
+      candidates.push({ points, source: 'live' });
     }
   } catch {
     /* fallback */
@@ -119,14 +144,43 @@ export async function loadMetalLongRange(
       opts.fredSeriesId,
       opts.fredAlternates ?? [],
     ));
-  const fromCache = filterByRange(daily.points, rangeKey);
-  if (fromCache.length >= min) {
-    return {
-      points: fromCache,
-      source: daily.source,
-      fetchedAt: daily.fetchedAt,
-    };
+
+  if (isValidDailySeries(daily.points)) {
+    const fromDaily = filterByRange(daily.points, rangeKey);
+    if (fromDaily.length > 0) {
+      candidates.push({
+        points: fromDaily,
+        source: daily.source,
+        fetchedAt: daily.fetchedAt,
+      });
+    }
   }
+
+  try {
+    const fred = await loadFredRange(opts.fredSeriesId, opts.fallbackFile, rangeKey);
+    if (fred.points.length > 0) {
+      candidates.push(fred);
+    }
+  } catch {
+    /* fallback */
+  }
+
+  try {
+    const fb = await loadDailyFallbackJson(opts.fallbackFile);
+    const slice = filterByRange(fb.points, rangeKey);
+    if (slice.length > 0 && isValidDailyRangeSlice(slice, rangeKey)) {
+      candidates.push({
+        points: slice,
+        source: 'fallback',
+        fetchedAt: fb.fetchedAt,
+      });
+    }
+  } catch {
+    /* fallback */
+  }
+
+  const best = pickDensest(candidates);
+  if (best) return best;
 
   return loadFredRange(opts.fredSeriesId, opts.fallbackFile, rangeKey);
 }

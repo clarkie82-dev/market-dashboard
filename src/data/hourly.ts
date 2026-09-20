@@ -2,6 +2,36 @@ import type { DataPoint } from './types';
 import { filterLastHours } from './ranges';
 
 export const MIN_HOURLY_SHORT_POINTS = 48;
+export const MIN_DAILY_SERIES_POINTS = 100;
+
+function sortByDate(points: DataPoint[]): DataPoint[] {
+  return [...points].sort((a, b) => a.date.localeCompare(b.date));
+}
+
+function dateGapDays(a: string, b: string): number {
+  const ms = new Date(`${b}T12:00:00Z`).getTime() - new Date(`${a}T12:00:00Z`).getTime();
+  return ms / (24 * 60 * 60 * 1000);
+}
+
+/** Detect ~daily spacing (not ~1 point/month). */
+export function isDailyGranular(points: DataPoint[], sampleSize = 90): boolean {
+  if (points.length < 20) return false;
+  const sorted = sortByDate(points);
+  const sample = sorted.slice(-Math.min(sampleSize, sorted.length));
+  if (sample.length < 20) return false;
+  const gaps: number[] = [];
+  let inBand = 0;
+  for (let i = 1; i < sample.length; i++) {
+    const gap = dateGapDays(sample[i - 1]!.date, sample[i]!.date);
+    if (gap <= 0) continue;
+    gaps.push(gap);
+    if (gap >= 1 && gap <= 5) inBand++;
+  }
+  if (gaps.length < 15 || inBand < 30) return false;
+  gaps.sort((a, b) => a - b);
+  const median = gaps[Math.floor(gaps.length / 2)]!;
+  return median <= 4;
+}
 
 export function sortByTime(points: DataPoint[]): DataPoint[] {
   return [...points].sort((a, b) => (a.time ?? 0) - (b.time ?? 0));
