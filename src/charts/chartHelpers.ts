@@ -15,6 +15,7 @@ import 'chartjs-adapter-date-fns';
 import type { DataPoint } from '../data/types';
 import type { YieldCurvePoint } from '../data/yieldCurve';
 import { formatPointTime } from '../data/hourly';
+import { DEFAULT_LINE_COLOR } from './seriesColors';
 
 Chart.register(
   LineController,
@@ -45,6 +46,7 @@ export function lineTimeChart(
   label: string,
   yLabel?: string,
   timeUnit: 'day' | 'hour' = 'day',
+  lineColor?: string,
 ): Chart {
   const cfg: ChartConfiguration<'line'> = {
     type: 'line',
@@ -56,7 +58,7 @@ export function lineTimeChart(
             x: pointToX(p),
             y: p.value,
           })),
-          borderColor: COLORS[0],
+          borderColor: lineColor ?? DEFAULT_LINE_COLOR,
           backgroundColor: 'transparent',
           tension: 0.1,
           pointRadius: 0,
@@ -94,6 +96,7 @@ export function lineSequentialHourlyChart(
   points: DataPoint[],
   label: string,
   yLabel?: string,
+  lineColor?: string,
 ): Chart {
   const cfg: ChartConfiguration<'line'> = {
     type: 'line',
@@ -102,7 +105,7 @@ export function lineSequentialHourlyChart(
         {
           label,
           data: points.map((p, i) => ({ x: i, y: p.value })),
-          borderColor: COLORS[0],
+          borderColor: lineColor ?? DEFAULT_LINE_COLOR,
           backgroundColor: 'transparent',
           tension: 0.1,
           pointRadius: 0,

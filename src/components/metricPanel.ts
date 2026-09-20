@@ -21,6 +21,7 @@ export type MetricPanelOptions = {
   shortFilterHours?: number;
   shortTimeUnit?: 'day' | 'hour';
   shortCondenseSequential?: boolean;
+  lineColor?: string;
   onRangeChange: (key: RangeKey) => Promise<SeriesPayload>;
 };
 
@@ -99,7 +100,13 @@ export function createMetricPanel(
     if (opts.shortCondenseSequential) {
       const window = selectShortHourlyWindow(points, opts.shortFilterHours ?? 168);
       shortH.textContent = shortHourlyTitle(window);
-      shortChart = lineSequentialHourlyChart(shortCanvas, window, opts.title, opts.yLabel);
+      shortChart = lineSequentialHourlyChart(
+        shortCanvas,
+        window,
+        opts.title,
+        opts.yLabel,
+        opts.lineColor,
+      );
       return;
     }
     const filtered =
@@ -112,12 +119,20 @@ export function createMetricPanel(
       opts.title,
       opts.yLabel,
       opts.shortTimeUnit ?? 'day',
+      opts.lineColor,
     );
   }
 
   function renderLong(payload: SeriesPayload) {
     longChart = destroyChart(longChart);
-    longChart = lineTimeChart(longCanvas, payload.points, opts.title, opts.yLabel);
+    longChart = lineTimeChart(
+      longCanvas,
+      payload.points,
+      opts.title,
+      opts.yLabel,
+      'day',
+      opts.lineColor,
+    );
     updateMeta(payload, initialShortMeta);
   }
 

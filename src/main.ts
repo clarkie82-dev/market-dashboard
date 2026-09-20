@@ -10,6 +10,12 @@ import { createMetricPanel } from './components/metricPanel';
 import { createFearGreedPanel } from './components/fearGreedDial';
 import { createTreasuryBlock } from './components/treasuryBlock';
 import { cardTitleWithSpot } from './format/usdSpot';
+import {
+  BITCOIN_ORANGE,
+  GOLD,
+  NASDAQ_TEAL,
+  SP_GLOBAL_RED,
+} from './charts/seriesColors';
 
 const app = document.querySelector<HTMLElement>('#app')!;
 
@@ -49,12 +55,14 @@ async function init() {
 
     createMetricPanel(app, lastNDays(sp.points, 30), { ...sp, points: filterByRange(sp.points, '6m') }, {
       title: 'S&P 500 (SPX)',
+      lineColor: SP_GLOBAL_RED,
       yLabel: 'Index',
       onRangeChange: (k) => loadFredRange(FRED_SERIES.sp500, 'sp500.json', k),
     });
 
     createMetricPanel(app, lastNDays(ndq.points, 30), { ...ndq, points: filterByRange(ndq.points, '6m') }, {
       title: 'NASDAQ',
+      lineColor: NASDAQ_TEAL,
       yLabel: 'Index',
       onRangeChange: (k) => loadFredRange(FRED_SERIES.nasdaq, 'nasdaq.json', k),
     });
@@ -66,6 +74,7 @@ async function init() {
       {
         title: 'Bitcoin — USD',
         cardTitle: cardTitleWithSpot('Bitcoin — USD', btc.short.points, btc.long.points),
+        lineColor: BITCOIN_ORANGE,
         yLabel: 'USD',
         shortLabel: 'Last 7 days (hourly)',
         shortFilterHours: 168,
@@ -100,6 +109,7 @@ async function init() {
       {
         title: 'Gold — USD',
         cardTitle: cardTitleWithSpot('Gold — USD', gold.short.points, gold.long.points),
+        lineColor: GOLD,
         yLabel: 'USD / oz',
         shortFilterHours: 168,
         shortCondenseSequential: true,
@@ -158,6 +168,7 @@ async function init() {
       xjo.long,
       {
         title: 'ASX 200 (XJO)',
+        lineColor: SP_GLOBAL_RED,
         yLabel: 'Index',
         shortFilterHours: 168,
         shortCondenseSequential: true,
