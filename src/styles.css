@@ -91,14 +91,14 @@ header h1 {
   font-size: 1rem;
 }
 
+/* Fear & Greed: half-page card; remainder of row stays empty (page background) */
 .fng-panel {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  align-items: start;
+  width: 50%;
+  max-width: 50%;
+  box-sizing: border-box;
 }
 
 .fng-panel-main {
-  grid-column: 1;
   max-width: 100%;
 }
 
@@ -112,15 +112,17 @@ header h1 {
 .fng-dial {
   background: #1e222d;
   border-radius: 8px;
-  padding: 0.75rem 1rem 0.5rem;
+  padding: 0.75rem 1rem 0.65rem;
   width: fit-content;
+  overflow: visible;
 }
 
 .fng-dial svg {
-  max-width: 140px;
+  max-width: 180px;
   width: 100%;
   height: auto;
   display: block;
+  margin-inline: auto;
 }
 
 .fng-attribution {
@@ -130,8 +132,9 @@ header h1 {
   line-height: 1.35;
 }
 
-@media (max-width: 600px) {
+@media (max-width: 720px) {
   .fng-panel {
-    grid-template-columns: 1fr;
+    width: 100%;
+    max-width: 100%;
   }
 }

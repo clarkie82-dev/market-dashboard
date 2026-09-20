@@ -76,13 +76,13 @@ export function createFearGreedPanel(container: HTMLElement, data: FearGreedData
   ).join('\n    ');
 
   const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-  svg.setAttribute('viewBox', '0 0 200 115');
+  svg.setAttribute('viewBox', '0 0 200 132');
   svg.setAttribute('aria-label', `Fear and Greed Index ${value}, ${data.classification}`);
   svg.innerHTML = `
     ${segmentPaths}
     <circle cx="${marker.x}" cy="${marker.y}" r="5" fill="#fff"/>
-    <text x="${cx}" y="${cy + 8}" text-anchor="middle" fill="#fff" font-size="28" font-weight="700" font-family="system-ui,sans-serif">${value}</text>
-    <text x="${cx}" y="${cy + 28}" text-anchor="middle" fill="#9ca3af" font-size="13" font-family="system-ui,sans-serif">${label}</text>
+    <text x="${cx}" y="${cy + 6}" text-anchor="middle" fill="#fff" font-size="28" font-weight="700" font-family="system-ui,sans-serif">${value}</text>
+    <text x="${cx}" y="${cy + 26}" text-anchor="middle" dominant-baseline="hanging" fill="#9ca3af" font-size="13" font-family="system-ui,sans-serif">${label}</text>
   `;
 
   dialCard.appendChild(svg);
