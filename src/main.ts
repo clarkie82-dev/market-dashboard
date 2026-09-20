@@ -4,7 +4,7 @@ import { loadCoinGecko, reloadCoinGeckoLong } from './data/coingecko';
 import { loadMetalPair } from './data/metals';
 import { loadFearGreed } from './data/fearGreed';
 import { goldSilverRatio } from './data/ratio';
-import { loadXjo } from './data/xjo';
+import { loadXjo, loadXjoPair } from './data/xjo';
 import { lastNDays, filterByRange } from './data/ranges';
 import { createMetricPanel } from './components/metricPanel';
 import { createFearGreedPanel } from './components/fearGreedDial';
@@ -28,7 +28,7 @@ async function init() {
         'GOLDAMGBD228NLBM',
       ]),
       loadMetalPair(FRED_SERIES.silver, 'silver.json', 'silver-7d.json', 'SI=F'),
-      loadXjo('6m'),
+      loadXjoPair('6m'),
     ]);
 
     loading.remove();
@@ -132,11 +132,19 @@ async function init() {
 
     await createTreasuryBlock(app);
 
-    createMetricPanel(app, lastNDays(xjo.points, 30), xjo, {
-      title: 'ASX 200 (XJO) — AUD',
-      yLabel: 'Index',
-      onRangeChange: (k) => loadXjo(k),
-    });
+    createMetricPanel(
+      app,
+      xjo.short.points,
+      xjo.long,
+      {
+        title: 'ASX 200 (XJO) — AUD',
+        yLabel: 'Index',
+        shortFilterHours: 168,
+        shortCondenseSequential: true,
+        onRangeChange: (k) => loadXjo(k),
+      },
+      xjo.short,
+    );
   } catch (e) {
     loading.textContent = e instanceof Error ? e.message : 'Failed to load dashboard';
     loading.classList.add('error');
