@@ -47,13 +47,13 @@ async function init() {
     loading.remove();
 
     createMetricPanel(app, lastNDays(sp.points, 30), { ...sp, points: filterByRange(sp.points, '6m') }, {
-      title: 'S&P 500 (SPX) — USD',
+      title: 'S&P 500 (SPX)',
       yLabel: 'Index',
       onRangeChange: (k) => loadFredRange(FRED_SERIES.sp500, 'sp500.json', k),
     });
 
     createMetricPanel(app, lastNDays(ndq.points, 30), { ...ndq, points: filterByRange(ndq.points, '6m') }, {
-      title: 'NASDAQ — USD',
+      title: 'NASDAQ',
       yLabel: 'Index',
       onRangeChange: (k) => loadFredRange(FRED_SERIES.nasdaq, 'nasdaq.json', k),
     });
@@ -152,7 +152,7 @@ async function init() {
       xjo.short.points,
       xjo.long,
       {
-        title: 'ASX 200 (XJO) — AUD',
+        title: 'ASX 200 (XJO)',
         yLabel: 'Index',
         shortFilterHours: 168,
         shortCondenseSequential: true,
