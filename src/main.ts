@@ -1,7 +1,7 @@
 import './styles.css';
 import { FRED_SERIES, loadFredRange, loadFredWithFallback } from './data/fred';
 import { loadCoinGecko, reloadCoinGeckoLong } from './data/coingecko';
-import { loadMetalPair } from './data/metals';
+import { loadMetalLongRange, loadMetalPair, type MetalLongRangeOpts } from './data/metals';
 import { loadFearGreed } from './data/fearGreed';
 import { goldSilverRatio } from './data/ratio';
 import { loadXjo, loadXjoPair } from './data/xjo';
@@ -11,6 +11,19 @@ import { createFearGreedPanel } from './components/fearGreedDial';
 import { createTreasuryBlock } from './components/treasuryBlock';
 
 const app = document.querySelector<HTMLElement>('#app')!;
+
+const goldLongOpts: MetalLongRangeOpts = {
+  yahooSymbol: 'GC=F',
+  fallbackFile: 'gold.json',
+  fredSeriesId: FRED_SERIES.gold,
+  fredAlternates: ['GOLDAMGBD228NLBM'],
+};
+
+const silverLongOpts: MetalLongRangeOpts = {
+  yahooSymbol: 'SI=F',
+  fallbackFile: 'silver.json',
+  fredSeriesId: FRED_SERIES.silver,
+};
 
 async function init() {
   const loading = document.createElement('p');
@@ -86,7 +99,8 @@ async function init() {
         yLabel: 'USD / oz',
         shortFilterHours: 168,
         shortCondenseSequential: true,
-        onRangeChange: (k) => loadFredRange(FRED_SERIES.gold, 'gold.json', k),
+        onRangeChange: (k) =>
+          loadMetalLongRange({ ...goldLongOpts, dailySeries: gold.daily }, k),
       },
       gold.short,
     );
@@ -100,7 +114,8 @@ async function init() {
         yLabel: 'USD / oz',
         shortFilterHours: 168,
         shortCondenseSequential: true,
-        onRangeChange: (k) => loadFredRange(FRED_SERIES.silver, 'silver.json', k),
+        onRangeChange: (k) =>
+          loadMetalLongRange({ ...silverLongOpts, dailySeries: silver.daily }, k),
       },
       silver.short,
     );
@@ -118,8 +133,8 @@ async function init() {
         title: 'Gold / Silver ratio',
         onRangeChange: async (k) => {
           const [g, s] = await Promise.all([
-            loadFredRange(FRED_SERIES.gold, 'gold.json', k),
-            loadFredRange(FRED_SERIES.silver, 'silver.json', k),
+            loadMetalLongRange({ ...goldLongOpts, dailySeries: gold.daily }, k),
+            loadMetalLongRange({ ...silverLongOpts, dailySeries: silver.daily }, k),
           ]);
           return {
             points: goldSilverRatio(g.points, s.points),

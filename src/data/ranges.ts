@@ -54,6 +54,43 @@ export function lastNDays(points: DataPoint[], days: number): DataPoint[] {
   return points.filter((p) => p.date >= cutoff);
 }
 
+/** Yahoo v8/chart `range` param; 15y/20y/max use `max` + client filterByRange. */
+export function yahooChartRange(key: RangeKey): string {
+  const map: Record<Exclude<RangeKey, 'max'>, string> = {
+    '1m': '1mo',
+    '3m': '3mo',
+    '6m': '6mo',
+    '1y': '1y',
+    '3y': '5y',
+    '5y': '5y',
+    '10y': '10y',
+    '15y': 'max',
+    '20y': 'max',
+  };
+  return key === 'max' ? 'max' : map[key];
+}
+
+export function yahooRangeNeedsClientFilter(key: RangeKey): boolean {
+  return key === 'max' || key === '15y' || key === '20y';
+}
+
+/** Minimum daily points expected for a range before falling back to cache/FRED. */
+export function minDailyForRange(key: RangeKey): number {
+  const map: Record<RangeKey, number> = {
+    '1m': 15,
+    '3m': 40,
+    '6m': 40,
+    '1y': 180,
+    '3y': 400,
+    '5y': 600,
+    '10y': 1200,
+    '15y': 1500,
+    '20y': 2000,
+    max: 100,
+  };
+  return map[key];
+}
+
 export function coingeckoDays(key: RangeKey): string {
   if (key === 'max') return 'max';
   const map: Record<Exclude<RangeKey, 'max'>, string> = {

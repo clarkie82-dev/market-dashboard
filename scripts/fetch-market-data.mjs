@@ -197,8 +197,8 @@ await writeJsonOrKeepCache(
   'gold.json',
   async () => ({
     points: await fetchSeriesWithFallback([
-      () => fetchFred('GOLDPMGBD228NLBM'),
       () => fetchYahooChart('GC=F'),
+      () => fetchFred('GOLDPMGBD228NLBM'),
       () => fetchStooq('xauusd'),
     ]),
     fetchedAt,
@@ -209,8 +209,8 @@ await writeJsonOrKeepCache(
   'silver.json',
   async () => ({
     points: await fetchSeriesWithFallback([
-      () => fetchFred('SLVPRUSD'),
       () => fetchYahooChart('SI=F'),
+      () => fetchFred('SLVPRUSD'),
       () => fetchStooq('xagususd'),
     ]),
     fetchedAt,
