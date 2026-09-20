@@ -12,3 +12,9 @@ export const BITCOIN_ORANGE = '#F7931A';
 
 /** Gold line on white backgrounds. */
 export const GOLD = '#D4AF37';
+
+/** Ethereum brand (dark purple). */
+export const ETHEREUM_DARK_PURPLE = '#512DA8';
+
+/** Silver metallic line on white backgrounds. */
+export const SILVER = '#8A8A8A';

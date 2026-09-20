@@ -12,8 +12,10 @@ import { createTreasuryBlock } from './components/treasuryBlock';
 import { cardTitleWithSpot } from './format/usdSpot';
 import {
   BITCOIN_ORANGE,
+  ETHEREUM_DARK_PURPLE,
   GOLD,
   NASDAQ_TEAL,
+  SILVER,
   SP_GLOBAL_RED,
 } from './charts/seriesColors';
 
@@ -91,6 +93,7 @@ async function init() {
       {
         title: 'Ethereum — USD',
         cardTitle: cardTitleWithSpot('Ethereum — USD', eth.short.points, eth.long.points),
+        lineColor: ETHEREUM_DARK_PURPLE,
         yLabel: 'USD',
         shortLabel: 'Last 7 days (hourly)',
         shortFilterHours: 168,
@@ -126,6 +129,7 @@ async function init() {
       {
         title: 'Silver — USD',
         cardTitle: cardTitleWithSpot('Silver — USD', silver.short.points, silver.long.points),
+        lineColor: SILVER,
         yLabel: 'USD / oz',
         shortFilterHours: 168,
         shortCondenseSequential: true,
