@@ -12,6 +12,8 @@ import { selectShortHourlyWindow, shortHourlyTitle } from '../data/hourly';
 
 export type MetricPanelOptions = {
   title: string;
+  /** Panel heading; defaults to `title` (chart legend keeps `title`). */
+  cardTitle?: string;
   yLabel?: string;
   shortLabel?: string;
   longLabel?: string;
@@ -33,7 +35,7 @@ export function createMetricPanel(
   panel.className = 'metric-panel';
 
   const h2 = document.createElement('h2');
-  h2.textContent = opts.title;
+  h2.textContent = opts.cardTitle ?? opts.title;
   panel.appendChild(h2);
 
   const meta = document.createElement('div');

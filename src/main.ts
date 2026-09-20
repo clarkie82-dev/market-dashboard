@@ -9,6 +9,7 @@ import { lastNDays, filterByRange } from './data/ranges';
 import { createMetricPanel } from './components/metricPanel';
 import { createFearGreedPanel } from './components/fearGreedDial';
 import { createTreasuryBlock } from './components/treasuryBlock';
+import { cardTitleWithSpot } from './format/usdSpot';
 
 const app = document.querySelector<HTMLElement>('#app')!;
 
@@ -64,6 +65,7 @@ async function init() {
       btc.long,
       {
         title: 'Bitcoin — USD',
+        cardTitle: cardTitleWithSpot('Bitcoin — USD', btc.short.points, btc.long.points),
         yLabel: 'USD',
         shortLabel: 'Last 7 days (hourly)',
         shortFilterHours: 168,
@@ -79,6 +81,7 @@ async function init() {
       eth.long,
       {
         title: 'Ethereum — USD',
+        cardTitle: cardTitleWithSpot('Ethereum — USD', eth.short.points, eth.long.points),
         yLabel: 'USD',
         shortLabel: 'Last 7 days (hourly)',
         shortFilterHours: 168,
@@ -96,6 +99,7 @@ async function init() {
       gold.long,
       {
         title: 'Gold — USD',
+        cardTitle: cardTitleWithSpot('Gold — USD', gold.short.points, gold.long.points),
         yLabel: 'USD / oz',
         shortFilterHours: 168,
         shortCondenseSequential: true,
@@ -111,6 +115,7 @@ async function init() {
       silver.long,
       {
         title: 'Silver — USD',
+        cardTitle: cardTitleWithSpot('Silver — USD', silver.short.points, silver.long.points),
         yLabel: 'USD / oz',
         shortFilterHours: 168,
         shortCondenseSequential: true,
